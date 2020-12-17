@@ -13,7 +13,7 @@ app.use(bodyParser.urlencoded({
 }));
 app.use(bodyParser.json());
 
-const db = new sqlite3.Database('./emp_database.db', (err) => {
+const db = new sqlite3.Database('./readings.db', (err) => {
     if (err) {
         console.error("Error opening database " + err.message);
     } else {
@@ -26,17 +26,12 @@ const db = new sqlite3.Database('./emp_database.db', (err) => {
             if (err) {
                 console.log("Table already exists.");
             }
-            let insert = 'INSERT INTO readings (day, data) VALUES (?,?)';
-            db.run(insert, ["16/08/1989", "100"]);
-            db.run(insert, ["17/09/1990", "200"]);
-            db.run(insert, ["18/10/1991", "300"]);
         });
     }
 });
 
-app.get("/readings/:id", (req, res, next) => {
-    var params = [req.params.id]
-    db.get(`SELECT * FROM readings where reading_id = ?`, [params], (err, row) => {
+app.get("/readings/last", (req, res, next) => {
+    db.get(`SELECT * FROM readings ORDER BY id DESC LIMIT 1`, [], (err, row) => {
         if (err) {
           res.status(400).json({"error":err.message});
           return;
@@ -45,18 +40,31 @@ app.get("/readings/:id", (req, res, next) => {
       });
 });
 
+// readings/range/2020-12-17/2020-12-20
+app.get("/readings/range/:from/:to", (req, res, next) => {
+    var from = req.params.from;
+    var to = req.params.to;
+    db.all(`SELECT * from readings where day BETWEEN ? and ? ORDER BY day ASC`, [from, to], (err, rows) => {
+        if (err) {
+          res.status(400).json({"error":err.message});
+          return;
+        }
+        res.status(200).json(rows);
+      });
+});
+
 
 app.post("/readings", (req, res, next) => {
     var reqBody = req.body;
-    db.run(`INSERT INTO readings (day, data) VALUES (?,?)`,
-        [reqBody.day, reqBody.data],
+    db.run(`INSERT INTO readings (day, data) VALUES (datetime('now'),?)`,
+        [reqBody.data],
         function (err, result) {
             if (err) {
                 res.status(400).json({ "error": err.message })
                 return;
             }
             res.status(201).json({
-                "reading_id": this.lastID
+                "id": this.lastID
             })
         });
 });

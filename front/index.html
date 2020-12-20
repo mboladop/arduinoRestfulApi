@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Document</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment-with-locales.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@0.7.7"></script>
+</head>
+<body>
+  <button onclick="resetZoom()">Reset Zoom</button>
+  <button id="drag-switch" onclick="toggleDragMode()">Disable drag mode</button>
+  <canvas id="canvas" width="1000" height="400"></canvas>
+<script>	
+  Date.prototype.addHours= function(h){
+    this.setHours(this.getHours()+h);
+    return this;
+  }
+  window.onload = function() {
+    let fromDate = moment().format('YYYY-MM-DD');
+    let toDate = moment().add(1, 'days').format('YYYY-MM-DD');
+    let cont =0;
+    let step = 0;
+    let averageItems = [];
+    fetch(`http://localhost:3307/readings/range/${fromDate}/${toDate}`)
+    .then(response => response.json())
+    .then(data => {
+      var formattedData = [];
+      data.forEach(e => {
+        cont++;
+        step++;
+        averageItems.push(e.data);
+        // formattedData.push({x:new Date(e.day).addHours(1),y:e.data});
+        if (step > 5) {
+          var total = averageItems.reduce((b, a) => b + a,0) / averageItems.length;
+          formattedData.push({x:new Date(e.day).addHours(1),y:total.toFixed(0)});
+          step = 0;
+          averageItems = [];
+        }
+      });
+      const config = {
+        type: 'line',
+        data: {
+          datasets: [{
+            label: 'Altherma',
+            data: formattedData
+          }]
+        },
+        options: {
+          plugins: {
+            zoom: {
+              zoom: {
+                enabled: true,
+                drag: {
+                  animationDuration: 1000
+                },
+                mode: 'x',
+                speed: 0.05
+              }
+            }
+          },
+          responsive: false,
+          animation: false,
+          scales: {
+            xAxes: [{
+              scaleLabel: {
+                display: true,
+                labelString: fromDate
+              },
+              type: 'time',
+              time: {
+                tooltipFormat: "HH:mm:ss",
+                displayFormats: {
+                    millisecond: 'HH:mm:ss.SSS',
+                    second: 'HH:mm:ss',
+                    minute: 'HH:mm',
+                    hour: 'HH'
+                }
+              },
+              ticks: {
+                maxRotation: 90,
+                minRotation: 90
+              }
+            }],
+            yAxes: [{
+              scaleLabel: {
+                display: true,
+                labelString: 'Watts'
+              },
+            }]
+          }
+        }
+      };
+      var ctx = document.getElementById('canvas').getContext('2d');
+      window.myLine = new Chart(ctx, config);
+    });
+  };
+        window.resetZoom = function() {
+			window.myLine.resetZoom();
+		};
+
+  window.toggleDragMode = function() {
+    var chart = window.myLine;
+    var zoomOptions = chart.options.plugins.zoom.zoom;
+    zoomOptions.drag = zoomOptions.drag ? false : {animationDuration: 1000};
+    chart.update();
+    document.getElementById('drag-switch').innerText = zoomOptions.drag ? 'Disable drag mode' : 'Enable drag mode';
+  };
+</script>
+</body>
+</html>

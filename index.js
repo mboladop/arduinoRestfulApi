@@ -32,8 +32,17 @@ const db = new sqlite3.Database('./readings.db', (err) => {
     } else {
 
         db.run('CREATE TABLE readings( \
-            reading_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,\
-            day NVARCHAR(20) NOT NULL,\
+            id INTEGER PRIMARY KEY AUTOINCREMENT,\
+            day NVARCHAR(20),\
+            data INTEGER\
+        )', (err) => {
+            if (err) {
+                console.log("Table already exists.");
+            }
+        });
+        db.run('CREATE TABLE wattage( \
+            id INTEGER PRIMARY KEY AUTOINCREMENT,\
+            day NVARCHAR(20),\
             data INTEGER\
         )', (err) => {
             if (err) {

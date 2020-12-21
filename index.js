@@ -75,6 +75,19 @@ app.get("/readings/range/:from/:to", (req, res, next) => {
       });
 });
 
+// wattage/range/2020-12-17/2020-12-20
+app.get("/wattage/range/:from/:to", (req, res, next) => {
+    var from = req.params.from;
+    var to = req.params.to;
+    db.all(`SELECT * from wattage where day BETWEEN ? and ? ORDER BY day ASC`, [from, to], (err, rows) => {
+        if (err) {
+          res.status(400).json({"error":err.message});
+          return;
+        }
+        res.status(200).json(rows);
+      });
+});
+
 
 app.post("/readings", (req, res, next) => {
     var reqBody = req.body;

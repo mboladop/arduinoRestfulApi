@@ -7,7 +7,7 @@ import sqlite3
 import multiprocessing
 import time
 # /root/arduinoRestfulApi
-db_filename = './readings.db'
+db_filename = '/root/arduinoRestfulApi/readings.db'
 
 def getData():
     PARAMS = {

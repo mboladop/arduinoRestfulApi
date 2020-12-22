@@ -11,19 +11,20 @@
 <body>
   <button onclick="resetZoom()">Reset Zoom</button>
   <button id="drag-switch" onclick="toggleDragMode()">Disable drag mode</button>
-  <canvas id="canvas" width="1000" height="400"></canvas>
+  <button onclick="prev()">Prev</button>
+  <button onclick="next()">Next</button>
+  <canvas id="canvas" width="1380" height="400"></canvas>
 <script>	
   Date.prototype.addHours= function(h){
     this.setHours(this.getHours()+h);
     return this;
   }
-  window.onload = function() {
-    let fromDate = moment().format('YYYY-MM-DD');
-    let toDate = moment().add(1, 'days').format('YYYY-MM-DD');
+  function load(startDate, endDate) {
+    (window.myLine) && window.myLine.destroy()
     let cont =0;
     let step = 0;
     let averageItems = [];
-    fetch(`http://localhost:3307/readings/range/${fromDate}/${toDate}`)
+    fetch(`http://localhost:3307/readings/range/${startDate.format('YYYY-MM-DD')}/${endDate.format('YYYY-MM-DD')}`)
     .then(response => response.json())
     .then(data => {
       var formattedData = [];
@@ -39,66 +40,109 @@
           averageItems = [];
         }
       });
-      const config = {
-        type: 'line',
-        data: {
-          datasets: [{
-            label: 'Altherma',
-            data: formattedData
-          }]
-        },
-        options: {
-          plugins: {
-            zoom: {
-              zoom: {
-                enabled: true,
-                drag: {
-                  animationDuration: 1000
-                },
-                mode: 'x',
-                speed: 0.05
-              }
-            }
-          },
-          responsive: false,
-          animation: false,
-          scales: {
-            xAxes: [{
-              scaleLabel: {
-                display: true,
-                labelString: fromDate
-              },
-              type: 'time',
-              time: {
-                tooltipFormat: "HH:mm:ss",
-                displayFormats: {
-                    millisecond: 'HH:mm:ss.SSS',
-                    second: 'HH:mm:ss',
-                    minute: 'HH:mm',
-                    hour: 'HH'
-                }
-              },
-              ticks: {
-                maxRotation: 90,
-                minRotation: 90
-              }
-            }],
-            yAxes: [{
-              scaleLabel: {
-                display: true,
-                labelString: 'Watts'
-              },
+      fetch(`http://localhost:3307/weather/range/${startDate.format('YYYY-MM-DD')}/${endDate.format('YYYY-MM-DD')}`)
+      .then(response => response.json())
+      .then(dataW => {
+        var formattedWeather = [];
+        dataW.forEach(e => {
+          formattedWeather.push({x:new Date(e.day).addHours(1),y:e.temp.toFixed(2)});
+        });
+        const config = {
+          type: 'line',
+          data: {
+            datasets: [{
+              label: 'Altherma',
+              data: formattedData,
+              backgroundColor: 'rgb(255, 99, 132)',
+              borderColor: 'rgb(255, 99, 132)',
+              yAxisID: 'A',
+              fill: false
+            },
+            {
+              label: 'Outdoor Temp',
+              data: formattedWeather,
+              backgroundColor: 'rgb(54, 162, 235)',
+              borderColor: 'rgb(54, 162, 235)',
+              yAxisID: 'B',
+              fill: false
             }]
+          },
+          options: {
+            plugins: {
+              zoom: {
+                zoom: {
+                  enabled: true,
+                  drag: {
+                    animationDuration: 1000
+                  },
+                  mode: 'x',
+                  speed: 0.05
+                }
+              }
+            },
+            responsive: false,
+            animation: false,
+            scales: {
+              xAxes: [{
+                scaleLabel: {
+                  display: true,
+                  labelString: startDate.format('dddd DD-MM-YYYY')
+                },
+                type: 'time',
+                time: {
+                  tooltipFormat: "HH:mm:ss",
+                  displayFormats: {
+                      millisecond: 'HH:mm:ss.SSS',
+                      second: 'HH:mm:ss',
+                      minute: 'HH:mm',
+                      hour: 'HH'
+                  }
+                },
+                ticks: {
+                  maxRotation: 90,
+                  minRotation: 90
+                }
+              }],
+              yAxes: [{
+                id: 'A',
+                scaleLabel: {
+                  display: true,
+                  labelString: 'Watts'
+                },
+              }, {
+                id: 'B',
+                ticks: {
+                  max: 50,
+                  min: -10
+                }
+              }]
+            }
           }
-        }
-      };
-      var ctx = document.getElementById('canvas').getContext('2d');
-      window.myLine = new Chart(ctx, config);
+        };
+        var ctx = document.getElementById('canvas').getContext('2d');
+        window.myLine = new Chart(ctx, config);
+
+      });
     });
+  }
+  let fromDate = moment();
+  let toDate = moment().add(1, 'days');
+  window.onload = function() {
+    load(fromDate, toDate);
   };
-        window.resetZoom = function() {
-			window.myLine.resetZoom();
-		};
+  window.resetZoom = function() {
+    window.myLine.resetZoom();
+  };
+  window.prev = function() {
+    fromDate.subtract(1, 'days');
+    toDate.subtract(1, 'days');
+    load(fromDate, toDate);
+  };
+  window.next = function() {
+    fromDate.add(1, 'days');
+    toDate.add(1, 'days');
+    load(fromDate, toDate);
+  };
 
   window.toggleDragMode = function() {
     var chart = window.myLine;

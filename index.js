@@ -49,6 +49,17 @@ const db = new sqlite3.Database('./readings.db', (err) => {
                 console.log("Table already exists.");
             }
         });
+        db.run('CREATE TABLE weather( \
+            id INTEGER PRIMARY KEY AUTOINCREMENT,\
+            day NVARCHAR(20),\
+            temp INTEGER,\
+            clouds INTEGER,\
+            humidity INTEGER\
+        )', (err) => {
+            if (err) {
+                console.log("Table already exists.");
+            }
+        });
     }
 });
 
@@ -80,6 +91,19 @@ app.get("/wattage/range/:from/:to", (req, res, next) => {
     var from = req.params.from;
     var to = req.params.to;
     db.all(`SELECT * from wattage where day BETWEEN ? and ? ORDER BY day ASC`, [from, to], (err, rows) => {
+        if (err) {
+          res.status(400).json({"error":err.message});
+          return;
+        }
+        res.status(200).json(rows);
+      });
+});
+
+// weather/range/2020-12-17/2020-12-20
+app.get("/weather/range/:from/:to", (req, res, next) => {
+    var from = req.params.from;
+    var to = req.params.to;
+    db.all(`SELECT * from weather where day BETWEEN ? and ? ORDER BY day ASC`, [from, to], (err, rows) => {
         if (err) {
           res.status(400).json({"error":err.message});
           return;

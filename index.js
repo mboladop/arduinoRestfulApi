@@ -40,6 +40,15 @@ const db = new sqlite3.Database('./readings.db', (err) => {
                 console.log("Table already exists.");
             }
         });
+        db.run('CREATE TABLE events( \
+            id INTEGER PRIMARY KEY AUTOINCREMENT,\
+            day NVARCHAR(20),\
+            data TEXT\
+        )', (err) => {
+            if (err) {
+                console.log("Table already exists.");
+            }
+        });
         db.run('CREATE TABLE wattage( \
             id INTEGER PRIMARY KEY AUTOINCREMENT,\
             day NVARCHAR(20),\
@@ -112,6 +121,32 @@ app.get("/weather/range/:from/:to", (req, res, next) => {
       });
 });
 
+// events/2020-12-28
+app.get("/events/:from", (req, res, next) => {
+    var from = req.params.from;
+    db.all(`SELECT * from events where day = ? ORDER BY day ASC`, [from], (err, rows) => {
+        if (err) {
+          res.status(400).json({"error":err.message});
+          return;
+        }
+        res.status(200).json(rows);
+      });
+});
+
+app.post("/events", (req, res, next) => {
+    var reqBody = req.body;
+    db.run(`INSERT INTO events (day, data) VALUES (?, ?)`,
+        [reqBody.day, reqBody.data],
+        function (err, result) {
+            if (err) {
+                res.status(400).json({ "error": err.message })
+                return;
+            }
+            res.status(201).json({
+                "id": this.lastID
+            })
+        });
+});
 
 app.post("/readings", (req, res, next) => {
     var reqBody = req.body;

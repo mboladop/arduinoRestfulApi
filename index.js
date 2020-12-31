@@ -30,13 +30,14 @@ const db = new sqlite3.Database('./readings.db', (err) => {
     if (err) {
         console.error("Error opening database " + err.message);
     } else {
-
         db.run('CREATE TABLE readings( \
             id INTEGER PRIMARY KEY AUTOINCREMENT,\
             day NVARCHAR(20),\
             data INTEGER\
         )', (err) => {
             if (err) {
+                db.run('ALTER TABLE readings \
+                ADD COLUMN dataR INTEGER;', (err) => {});
                 console.log("Table already exists.");
             }
         });
@@ -150,8 +151,8 @@ app.post("/events", (req, res, next) => {
 
 app.post("/readings", (req, res, next) => {
     var reqBody = req.body;
-    db.run(`INSERT INTO readings (day, data) VALUES (datetime('now'),?)`,
-        [reqBody.data],
+    db.run(`INSERT INTO readings (day, data, dataR) VALUES (datetime('now'),?,?)`,
+        [reqBody.data, reqBody.dataR],
         function (err, result) {
             if (err) {
                 res.status(400).json({ "error": err.message })
